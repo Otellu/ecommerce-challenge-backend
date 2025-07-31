@@ -59,20 +59,6 @@ const productQueryValidation = {
       "string.min": "Category filter must be at least 1 character",
       "string.max": "Category filter cannot exceed 50 characters",
     }),
-    minPrice: Joi.number().positive().precision(2).messages({
-      "number.base": "Min price must be a number",
-      "number.positive": "Min price must be positive",
-      "number.precision": "Min price can have maximum 2 decimal places",
-    }),
-    maxPrice: Joi.number().positive().precision(2).messages({
-      "number.base": "Max price must be a number",
-      "number.positive": "Max price must be positive",
-      "number.precision": "Max price can have maximum 2 decimal places",
-    }),
-    search: Joi.string().min(1).max(100).messages({
-      "string.min": "Search query must be at least 1 character",
-      "string.max": "Search query cannot exceed 100 characters",
-    }),
   }),
 };
 

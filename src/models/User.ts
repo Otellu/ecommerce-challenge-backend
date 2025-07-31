@@ -65,11 +65,6 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-// Indexes for performance optimization
-userSchema.index({ email: 1 }); // Primary lookup
-userSchema.index({ role: 1 }); // Role-based queries
-userSchema.index({ createdAt: -1 }); // Recent users
-
 // Pre-save middleware to hash password
 userSchema.pre("save", async function (next) {
   // Only hash the password if it has been modified (or is new)

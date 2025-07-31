@@ -1,24 +1,6 @@
 import { Schema, model } from "mongoose";
 import { IProduct } from "@/utils/types";
 
-/**
- * Product Schema Design Considerations:
- *
- * 1. Seller reference for multi-vendor marketplace
- * 2. Soft delete with isDeleted flag and deletedAt timestamp
- * 3. Stock management with atomic updates for concurrent orders
- * 4. Category field for filtering (consider normalization for large scale)
- * 5. Images array for multiple product photos
- * 6. Price stored as number (consider decimal128 for financial precision)
- * 7. Rating and review count as virtual fields for performance
- *
- * Scalability considerations:
- * - Compound indexes for common filter combinations
- * - Text search index for product search functionality
- * - Separate collection for product variants if needed
- * - Consider sharding by category or seller for horizontal scaling
- */
-
 const productSchema = new Schema<IProduct>(
   {
     name: {
@@ -64,7 +46,6 @@ const productSchema = new Schema<IProduct>(
       required: [true, "Category is required"],
       trim: true,
       maxlength: [50, "Category name cannot exceed 50 characters"],
-      index: true, // Frequently used for filtering
     },
 
     images: [
@@ -84,20 +65,17 @@ const productSchema = new Schema<IProduct>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Seller ID is required"],
-      index: true, // For seller-specific queries
     },
 
     isActive: {
       type: Boolean,
       default: true,
-      index: true, // For filtering active products
     },
 
     // Soft delete fields
     isDeleted: {
       type: Boolean,
       default: false,
-      index: true, // For excluding deleted products
     },
 
     deletedAt: {
@@ -110,30 +88,6 @@ const productSchema = new Schema<IProduct>(
     // Optimize JSON output
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
-);
-
-// Compound indexes for performance optimization
-productSchema.index({ isActive: 1, isDeleted: 1 }); // Active, non-deleted products
-productSchema.index({ category: 1, isActive: 1, isDeleted: 1 }); // Category filtering
-productSchema.index({ sellerId: 1, isActive: 1, isDeleted: 1 }); // Seller products
-productSchema.index({ price: 1, isActive: 1, isDeleted: 1 }); // Price range filtering
-productSchema.index({ createdAt: -1 }); // Recent products
-productSchema.index({ stock: 1 }); // Stock availability
-
-// Text search index for product search
-productSchema.index(
-  {
-    name: "text",
-    description: "text",
-    category: "text",
-  },
-  {
-    weights: {
-      name: 10, // Higher weight for name matches
-      category: 5, // Medium weight for category
-      description: 1, // Lower weight for description
-    },
   }
 );
 

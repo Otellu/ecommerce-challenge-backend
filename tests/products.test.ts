@@ -54,8 +54,6 @@ describe("Product APIs", () => {
             stock: expect.any(Number),
             category: expect.any(String),
             images: expect.any(Array),
-            rating: expect.any(Number),
-            totalReviews: expect.any(Number),
           }),
         ]),
       });
@@ -75,31 +73,9 @@ describe("Product APIs", () => {
       });
     });
 
-    it("should handle search parameter", async () => {
-      const response = await request(app)
-        .get("/api/products?search=test")
-        .expect(200);
-
-      expect(response.body).toMatchObject({
-        success: true,
-        products: expect.any(Array),
-      });
-    });
-
     it("should handle category filter", async () => {
       const response = await request(app)
         .get("/api/products?category=test")
-        .expect(200);
-
-      expect(response.body).toMatchObject({
-        success: true,
-        products: expect.any(Array),
-      });
-    });
-
-    it("should handle price range filters", async () => {
-      const response = await request(app)
-        .get("/api/products?minPrice=10&maxPrice=1000")
         .expect(200);
 
       expect(response.body).toMatchObject({

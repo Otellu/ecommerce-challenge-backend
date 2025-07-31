@@ -1,24 +1,6 @@
 import { Schema, model } from "mongoose";
 import { IOrder, OrderStatus } from "@/utils/types";
 
-/**
- * Order Schema Design Considerations:
- *
- * 1. Embedded order items for atomic operations and performance
- * 2. Customer reference for order history queries
- * 3. Order status tracking with enum validation
- * 4. Shipping address embedded (consider separate Address model for reuse)
- * 5. Payment details embedded with optional fields
- * 6. Timestamps for order lifecycle tracking
- * 7. Total amount stored (not calculated) for consistency and performance
- *
- * Scalability considerations:
- * - Partition by date for time-series queries
- * - Separate collection for order audit logs if needed
- * - Consider order item normalization for complex analytics
- * - Index on customer and status for frequent queries
- */
-
 const orderItemSchema = new Schema(
   {
     productId: {
@@ -56,7 +38,7 @@ const orderItemSchema = new Schema(
     },
   },
   { _id: false }
-); // No separate _id for embedded documents
+);
 
 const shippingAddressSchema = new Schema(
   {
@@ -110,7 +92,7 @@ const paymentDetailsSchema = new Schema(
     transactionId: {
       type: String,
       trim: true,
-      sparse: true, // Allow null values but enforce uniqueness when present
+      sparse: true,
     },
 
     paidAt: {
@@ -127,7 +109,6 @@ const orderSchema = new Schema<IOrder>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Customer ID is required"],
-      index: true, // Frequently queried for user order history
     },
 
     items: {
@@ -147,7 +128,6 @@ const orderSchema = new Schema<IOrder>(
       min: [0, "Total amount cannot be negative"],
       validate: {
         validator: function (value: number) {
-          // Validate up to 2 decimal places for currency
           return /^\d+(\.\d{1,2})?$/.test(value.toString());
         },
         message: "Total amount can have maximum 2 decimal places",
@@ -159,7 +139,6 @@ const orderSchema = new Schema<IOrder>(
       enum: Object.values(OrderStatus),
       default: OrderStatus.PENDING,
       required: true,
-      index: true, // Frequently used for filtering orders
     },
 
     shippingAddress: {
@@ -184,36 +163,18 @@ const orderSchema = new Schema<IOrder>(
   },
   {
     timestamps: true,
-    // Optimize JSON output
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
 
-// Compound indexes for performance optimization
-orderSchema.index({ customerId: 1, createdAt: -1 }); // Customer order history
-orderSchema.index({ status: 1, createdAt: -1 }); // Orders by status
-orderSchema.index({ createdAt: -1 }); // Recent orders
-orderSchema.index({ "items.productId": 1 }); // Product order analytics
-
-// Sparse indexes for optional fields
-orderSchema.index({ shippedAt: -1 }, { sparse: true });
-orderSchema.index({ deliveredAt: -1 }, { sparse: true });
-
-// Text index for order search (by customer details, etc.)
-orderSchema.index({
-  "shippingAddress.city": "text",
-  "shippingAddress.state": "text",
-});
-
 // Pre-save middleware to validate total amount
 orderSchema.pre("save", function (next) {
-  // Validate that total amount matches sum of item totals
   const calculatedTotal = this.items.reduce(
     (sum, item) => sum + item.totalPrice,
     0
   );
-  const tolerance = 0.01; // Allow small floating point differences
+  const tolerance = 0.01;
 
   if (Math.abs(this.totalAmount - calculatedTotal) > tolerance) {
     return next(new Error("Total amount does not match sum of item prices"));
@@ -237,19 +198,6 @@ orderSchema.pre("save", function (next) {
   next();
 });
 
-// Virtual for order age (useful for analytics)
-orderSchema.virtual("daysSinceOrder").get(function () {
-  const diffTime = Math.abs(new Date().getTime() - this.createdAt.getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-});
-
-// Virtual for order processing time
-orderSchema.virtual("processingTime").get(function () {
-  if (!this.shippedAt) return null;
-  const diffTime = this.shippedAt.getTime() - this.createdAt.getTime();
-  return Math.ceil(diffTime / (1000 * 60 * 60)); // Hours
-});
-
 // Static method to find orders by status
 orderSchema.statics.findByStatus = function (status: OrderStatus) {
   return this.find({ status }).populate("customerId", "name email");
@@ -258,36 +206,6 @@ orderSchema.statics.findByStatus = function (status: OrderStatus) {
 // Static method to find customer orders
 orderSchema.statics.findByCustomer = function (customerId: string) {
   return this.find({ customerId }).sort({ createdAt: -1 });
-};
-
-// Static method for sales analytics (date range)
-orderSchema.statics.getSalesInDateRange = function (
-  startDate: Date,
-  endDate: Date
-) {
-  return this.aggregate([
-    {
-      $match: {
-        createdAt: { $gte: startDate, $lte: endDate },
-        status: {
-          $in: [
-            OrderStatus.PAID,
-            OrderStatus.PROCESSING,
-            OrderStatus.SHIPPED,
-            OrderStatus.DELIVERED,
-          ],
-        },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalRevenue: { $sum: "$totalAmount" },
-        totalOrders: { $sum: 1 },
-        averageOrderValue: { $avg: "$totalAmount" },
-      },
-    },
-  ]);
 };
 
 // Instance method to check if order can be cancelled
