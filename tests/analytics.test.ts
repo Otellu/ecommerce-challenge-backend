@@ -6,7 +6,6 @@ import {
   createTestUsers,
   createTestProduct,
   createTestOrder,
-  cleanTestData,
 } from "./utils/testHelpers";
 import { OrderStatus } from "../src/utils/types";
 

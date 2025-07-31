@@ -7,4 +7,3 @@ export * as authController from "./authController";
 export * as productController from "./productController";
 export * as orderController from "./orderController";
 export * as analyticsController from "./analyticsController";
-export * as userController from "./userController";

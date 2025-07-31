@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import { config } from "../src/config/environment";
-import { connectDatabase } from "../src/config/database";
 import authRoutes from "../src/routes/auth";
 import productRoutes from "../src/routes/products";
 import orderRoutes from "../src/routes/orders";
@@ -33,7 +32,7 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({ status: "OK", message: "Test server is running" });
 });
 

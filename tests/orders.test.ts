@@ -1,12 +1,7 @@
 import request from "supertest";
-import mongoose from "mongoose";
 import { app } from "./testApp";
 import { Product, User } from "../src/models";
-import {
-  createTestUsers,
-  createTestProduct,
-  cleanTestData,
-} from "./utils/testHelpers";
+import { createTestUsers, createTestProduct } from "./utils/testHelpers";
 
 describe("Order APIs", () => {
   let testUsers: { customer: any; seller: any };
